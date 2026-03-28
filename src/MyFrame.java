@@ -1,9 +1,6 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
+import java.awt.event.*;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -13,7 +10,7 @@ public class MyFrame extends JFrame {
     Connection conn = DBConnection.getConnection();
     PreparedStatement state = null;
     ResultSet result = null;
-    int id = 0;
+    int id = -1;
 
     JPanel upPanel = new JPanel();
     JPanel midPanel = new JPanel();
@@ -45,6 +42,7 @@ public class MyFrame extends JFrame {
     JButton addBTN = new JButton("Добавяне");
     JButton deleteBTN = new JButton("Изтриване");
     JButton editBTN = new JButton("Редактиране");
+    JButton searchByYear = new JButton("Търсене по година");
 
     JTable table = new JTable();
     JScrollPane scrollPane = new JScrollPane(table);
@@ -81,17 +79,20 @@ public class MyFrame extends JFrame {
         midPanel.add(addBTN);
         midPanel.add(deleteBTN);
         midPanel.add(editBTN);
+        midPanel.add(searchByYear);
         this.add(midPanel);
 
         addBTN.addActionListener(new AddAction());
+        table.addMouseListener(new MouseAction());
         deleteBTN.addActionListener(new DeleteAction());
+        searchByYear.addActionListener(new SearchActionCar());
 
         scrollPane.setPreferredSize(new Dimension(1100, 500));
         downPanel.add(scrollPane);
         this.add(downPanel);
 
         refreshTable();
-
+        refreshCarCombo();
         this.setVisible(true);
 
     }
@@ -99,7 +100,7 @@ public class MyFrame extends JFrame {
     public void refreshTable () {
 
         try {
-            state = conn.prepareStatement("select * from cars");
+            state = conn.prepareStatement("select brand,model,country,year_production,horse_power,max_speed,zero_to_hundred_seconds,transmission,eco_category from cars");
             result = state.executeQuery();
             table.setModel(new MyModel(result));
         } catch (Exception e) {
@@ -109,18 +110,38 @@ public class MyFrame extends JFrame {
 
     public void refreshCarCombo () {
         carCombo.removeAllItems();
-        String sql = "select id, brand,model,country,year_production,horse_power,max_speed,zero_to_hundred_seconds,transmission,eco_category";
-        String item;
-
+        String sql = "select car_id, brand, model from cars";
+        String item = "";
         try{
             state = conn.prepareStatement(sql);
             result = state.executeQuery();
+
             while (result.next()) {
                 item = result.getObject(1).toString() + ". " + result.getObject(2).toString() + " " + result.getObject(3).toString();
+                carCombo.addItem(item);
             }
+            String car_id = item.split("\\.")[0];
+
+            if (car_id.isEmpty()) {
+                id = 0;
+            }
+
+            else id = Integer.parseInt(car_id);
+
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public void clearForm () {
+        brandTF.setText("");
+        modelTF.setText("");
+        countryTF.setText("");
+        yearTF.setText("");
+        horsePowerTF.setText("");
+        maxSpeedTF.setText("");
+        zeroToHundredSecondsTF.setText("");
+        ecoCategoryTF.setText("");
     }
 
     class AddAction implements ActionListener {
@@ -147,6 +168,8 @@ public class MyFrame extends JFrame {
             }
 
             refreshTable();
+            clearForm();
+            refreshCarCombo();
         }
     }
 
@@ -154,7 +177,7 @@ public class MyFrame extends JFrame {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            String sql = "delete from cars where id=?";
+            String sql = "delete from cars where car_id=?";
 
             try {
                state=conn.prepareStatement(sql);
@@ -162,12 +185,72 @@ public class MyFrame extends JFrame {
                state.execute();
 
                refreshTable();
-
+               clearForm();
+               refreshCarCombo();
 
            } catch (SQLException e1) {
 
                e1.printStackTrace();
            }
+        }
+    }
+
+    class MouseAction implements MouseListener {
+
+        @Override
+        public void mouseClicked(MouseEvent e) {
+            int row = table.getSelectedRow();
+            brandTF.setText(table.getValueAt(row, 0).toString());
+            modelTF.setText(table.getValueAt(row, 1).toString());
+            countryTF.setText(table.getValueAt(row, 2).toString());
+            yearTF.setText(table.getValueAt(row, 3).toString());
+            horsePowerTF.setText(table.getValueAt(row, 4).toString());
+            maxSpeedTF.setText(table.getValueAt(row, 5).toString());
+            zeroToHundredSecondsTF.setText(table.getValueAt(row, 6).toString());
+            ecoCategoryTF.setText(table.getValueAt(row, 8).toString());
+
+            if (table.getValueAt(row, 7).toString().equals("Ръчна")) transmissionCombo.setSelectedIndex(0);
+
+            else transmissionCombo.setSelectedIndex(1);
+            
+        }
+
+        @Override
+        public void mousePressed(MouseEvent e) {
+
+        }
+
+        @Override
+        public void mouseReleased(MouseEvent e) {
+
+        }
+
+        @Override
+        public void mouseEntered(MouseEvent e) {
+
+        }
+
+        @Override
+        public void mouseExited(MouseEvent e) {
+
+        }
+    }
+
+    class SearchActionCar implements ActionListener {
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            String sql = "select * from cars where year_production=?";
+
+            try {
+                state = conn.prepareStatement(sql);
+                state.setInt(1, Integer.parseInt(yearTF.getText()));
+                result = state.executeQuery();
+                table.setModel(new MyModel(result));
+
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            }
         }
     }
 
@@ -188,7 +271,5 @@ public class MyFrame extends JFrame {
 
         }
     }
-
-
 
 }
