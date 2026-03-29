@@ -33,16 +33,19 @@ public class MyFrame extends JFrame {
     JTextField horsePowerTF = new JTextField();
     JTextField maxSpeedTF = new JTextField();
     JTextField zeroToHundredSecondsTF = new JTextField();
-    JTextField ecoCategoryTF = new JTextField("Евро: ");
+    JTextField ecoCategoryTF = new JTextField();
 
     String[] typesOfTransmissions = {"Ръчна", "Автоматична"};
-    JComboBox<String> transmissionCombo = new JComboBox<String>(typesOfTransmissions);
+    JComboBox<String> transmissionCombo = new JComboBox<>(typesOfTransmissions);
     JComboBox<String> carCombo = new JComboBox<>();
 
     JButton addBTN = new JButton("Добавяне");
     JButton deleteBTN = new JButton("Изтриване");
     JButton editBTN = new JButton("Редактиране");
     JButton searchByYear = new JButton("Търсене по година");
+    JTextField year_search = new JTextField();
+
+    JButton carRefresh=new JButton("Обнови");
 
     JTable table = new JTable();
     JScrollPane scrollPane = new JScrollPane(table);
@@ -74,18 +77,21 @@ public class MyFrame extends JFrame {
         upPanel.add(ecoCategoryTF);
         this.add(upPanel);
 
-
-
+        midPanel.setLayout(new GridLayout(4,2));
         midPanel.add(addBTN);
         midPanel.add(deleteBTN);
         midPanel.add(editBTN);
         midPanel.add(searchByYear);
+        midPanel.add(carRefresh);
+        midPanel.add(year_search);
         this.add(midPanel);
 
         addBTN.addActionListener(new AddAction());
         table.addMouseListener(new MouseAction());
         deleteBTN.addActionListener(new DeleteAction());
+        editBTN.addActionListener(new EditAction());
         searchByYear.addActionListener(new SearchActionCar());
+        carRefresh.addActionListener(new RefreshActionCar());
 
         scrollPane.setPreferredSize(new Dimension(1100, 500));
         downPanel.add(scrollPane);
@@ -120,14 +126,14 @@ public class MyFrame extends JFrame {
                 item = result.getObject(1).toString() + ". " + result.getObject(2).toString() + " " + result.getObject(3).toString();
                 carCombo.addItem(item);
             }
-            String car_id = item.split("\\.")[0];
-
-            if (car_id.isEmpty()) {
-                id = 0;
-            }
-
-            else id = Integer.parseInt(car_id);
-
+           // String car_id = item.split("\\.")[0];
+//
+           // if (car_id.isEmpty()) {
+           //     id = 0;
+           // }
+//
+           // else id = Integer.parseInt(car_id);
+//
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -142,6 +148,37 @@ public class MyFrame extends JFrame {
         maxSpeedTF.setText("");
         zeroToHundredSecondsTF.setText("");
         ecoCategoryTF.setText("");
+    }
+
+    public int getCarId (String brand, String model, String country, int yearProduction,
+                         int horsePower, float maxSpeed, float zeroToHundredSeconds,
+                         String transmission, String ecoCategory) {
+        try {
+            String sql = "SELECT car_id FROM cars WHERE brand = ? AND model = ? " +
+                    "AND country = ? AND YEAR_PRODUCTION = ? AND HORSE_POWER = ? " +
+                    "AND MAX_SPEED = ? AND ZERO_TO_HUNDRED_SECONDS = ? " +
+                    "AND TRANSMISSION = ? AND ECO_CATEGORY = ?";
+            state = conn.prepareStatement(sql);
+
+            state.setString(1, brandTF.getText());
+            state.setString(2, modelTF.getText());
+            state.setString(3, countryTF.getText());
+            state.setInt(4, Integer.parseInt(yearTF.getText()));
+            state.setInt(5, Integer.parseInt(horsePowerTF.getText()));
+            state.setFloat(6, Float.parseFloat(maxSpeedTF.getText()));
+            state.setFloat(7, Float.parseFloat(zeroToHundredSecondsTF.getText()));
+            state.setString(8, String.valueOf(transmissionCombo.getSelectedItem()));
+            state.setString(9, ecoCategoryTF.getText());
+
+            result = state.executeQuery();
+            id = result.getInt("car_id");
+
+
+        } catch (SQLException ex) {
+            throw new RuntimeException(ex);
+        }
+
+        return 0;
     }
 
     class AddAction implements ActionListener {
@@ -195,6 +232,38 @@ public class MyFrame extends JFrame {
         }
     }
 
+    class EditAction implements ActionListener{
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+
+            try {
+                String sql = "update cars set brand=?, model=?, country=?, YEAR_PRODUCTION=?, HORSE_POWER=?, MAX_SPEED=?, ZERO_TO_HUNDRED_SECONDS=?, TRANSMISSION=?, ECO_CATEGORY=? where car_id=?";
+                state = conn.prepareStatement(sql);
+                state.setInt(10, id);
+                state.setString(1, brandTF.getText());
+                state.setString(2, modelTF.getText());
+                state.setString(3, countryTF.getText());
+                state.setInt(4, Integer.parseInt(yearTF.getText()));
+                state.setInt(5, Integer.parseInt(horsePowerTF.getText()));
+                state.setFloat(6, Float.parseFloat(maxSpeedTF.getText()));
+                state.setFloat(7, Float.parseFloat(zeroToHundredSecondsTF.getText()));
+                state.setString(8, transmissionCombo.getSelectedItem().toString());
+                state.setString(9, ecoCategoryTF.getText());
+
+                state.execute();
+
+                refreshTable();
+                clearForm();
+                refreshCarCombo();
+
+
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
+            }
+        }
+    }
+
     class MouseAction implements MouseListener {
 
         @Override
@@ -212,7 +281,22 @@ public class MyFrame extends JFrame {
             if (table.getValueAt(row, 7).toString().equals("Ръчна")) transmissionCombo.setSelectedIndex(0);
 
             else transmissionCombo.setSelectedIndex(1);
-            
+
+
+
+            String brand = brandTF.getText();
+            String model = modelTF.getText();
+            String country = countryTF.getText();
+            int year = Integer.parseInt(yearTF.getText());
+            int horsePower = Integer.parseInt(horsePowerTF.getText());
+            float maxSpeed = Float.parseFloat(maxSpeedTF.getText());
+            float zeroToHundred = Float.parseFloat(zeroToHundredSecondsTF.getText());
+            String transmission = (String) transmissionCombo.getSelectedItem();
+            String ecoCategory = ecoCategoryTF.getText();
+
+            id = getCarId(brand, model, country, year, horsePower,
+                    maxSpeed, zeroToHundred, transmission, ecoCategory);
+
         }
 
         @Override
@@ -240,11 +324,12 @@ public class MyFrame extends JFrame {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            String sql = "select * from cars where year_production=?";
+            String sql = "select brand,model,country,year_production,horse_power,max_speed,zero_to_hundred_seconds,transmission,eco_category from cars where year_production=?";
 
             try {
                 state = conn.prepareStatement(sql);
-                state.setInt(1, Integer.parseInt(yearTF.getText()));
+
+                state.setInt(1, Integer.parseInt(year_search.getText()));
                 result = state.executeQuery();
                 table.setModel(new MyModel(result));
 
@@ -253,6 +338,19 @@ public class MyFrame extends JFrame {
             }
         }
     }
+
+    class RefreshActionCar implements ActionListener{
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+
+            refreshTable();
+            clearForm();
+
+        }
+
+    }
+}
 
     class MyKeyListener implements KeyListener {
 
@@ -272,4 +370,3 @@ public class MyFrame extends JFrame {
         }
     }
 
-}
