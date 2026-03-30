@@ -6,7 +6,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public class MyFrame extends JFrame {
+public class CarsTab extends JPanel {
     Connection conn = DBConnection.getConnection();
     PreparedStatement state = null;
     ResultSet result = null;
@@ -50,12 +50,13 @@ public class MyFrame extends JFrame {
     JTable table = new JTable();
     JScrollPane scrollPane = new JScrollPane(table);
 
-    public MyFrame () {
+
+
+
+    public CarsTab () {
         this.setSize(700, 500);
-        this.setDefaultCloseOperation(EXIT_ON_CLOSE);
         this.setLayout(new GridLayout(3, 1));
 
-        upPanel.addKeyListener(new MyKeyListener());
         upPanel.setLayout(new GridLayout(9, 2));
         upPanel.add(brandL);
         upPanel.add(brandTF);
@@ -117,7 +118,7 @@ public class MyFrame extends JFrame {
     public void refreshCarCombo () {
         carCombo.removeAllItems();
         String sql = "select car_id, brand, model from cars";
-        String item = "";
+        String item;
         try{
             state = conn.prepareStatement(sql);
             result = state.executeQuery();
@@ -148,11 +149,13 @@ public class MyFrame extends JFrame {
         maxSpeedTF.setText("");
         zeroToHundredSecondsTF.setText("");
         ecoCategoryTF.setText("");
+        id = -1;
     }
 
-    public int getCarId (String brand, String model, String country, int yearProduction,
+    public int getCarId (String brand, String model, String country, int year,
                          int horsePower, float maxSpeed, float zeroToHundredSeconds,
                          String transmission, String ecoCategory) {
+
         try {
             String sql = "SELECT car_id FROM cars WHERE brand = ? AND model = ? " +
                     "AND country = ? AND YEAR_PRODUCTION = ? AND HORSE_POWER = ? " +
@@ -160,25 +163,30 @@ public class MyFrame extends JFrame {
                     "AND TRANSMISSION = ? AND ECO_CATEGORY = ?";
             state = conn.prepareStatement(sql);
 
-            state.setString(1, brandTF.getText());
-            state.setString(2, modelTF.getText());
-            state.setString(3, countryTF.getText());
-            state.setInt(4, Integer.parseInt(yearTF.getText()));
-            state.setInt(5, Integer.parseInt(horsePowerTF.getText()));
-            state.setFloat(6, Float.parseFloat(maxSpeedTF.getText()));
-            state.setFloat(7, Float.parseFloat(zeroToHundredSecondsTF.getText()));
-            state.setString(8, String.valueOf(transmissionCombo.getSelectedItem()));
-            state.setString(9, ecoCategoryTF.getText());
+            state.setString(1, brand);
+            state.setString(2, model);
+            state.setString(3, country);
+            state.setInt(4, year);
+            state.setInt(5, horsePower);
+            state.setFloat(6, maxSpeed);
+            state.setFloat(7, zeroToHundredSeconds);
+            state.setString(8, transmission);
+            state.setString(9, ecoCategory);
 
             result = state.executeQuery();
-            id = result.getInt("car_id");
+            if (result.next()) {
+                id = result.getInt("car_id");
+                System.out.println("Намерено ID: " + id);
+            } else {
+                System.out.println("Няма кола с тези параметри");
+            }
 
 
         } catch (SQLException ex) {
             throw new RuntimeException(ex);
         }
 
-        return 0;
+        return id;
     }
 
     class AddAction implements ActionListener {
@@ -352,21 +360,5 @@ public class MyFrame extends JFrame {
     }
 }
 
-    class MyKeyListener implements KeyListener {
 
-        @Override
-        public void keyTyped(KeyEvent e) {
-
-        }
-
-        @Override
-        public void keyPressed(KeyEvent e) {
-
-        }
-
-        @Override
-        public void keyReleased(KeyEvent e) {
-
-        }
-    }
 
