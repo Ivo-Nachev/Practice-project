@@ -20,8 +20,6 @@ public class NewFrame extends JFrame {
     JTabbedPane tab=new JTabbedPane();
 
     JPanel personPanel=new JPanel();
-    JPanel sprPanel=new JPanel();
-
     JPanel person_upPanel = new JPanel();
     JPanel person_midPanel = new JPanel();
     JPanel person_downPanel = new JPanel();
@@ -77,7 +75,7 @@ public class NewFrame extends JFrame {
         person_scrollPane.setPreferredSize(new Dimension(300, 150));
         person_downPanel.add(person_scrollPane);
         personPanel.add(person_downPanel);
-        tab.add(personPanel,"Клиенти");
+        tab.add(personPanel,"Собственици");
 
         CarsTab carPanel = new CarsTab();
         InquiryTab inquiryPanel = new InquiryTab();

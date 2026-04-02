@@ -11,17 +11,19 @@ public class InquiryTab extends JPanel{
     PreparedStatement state = null;
     ResultSet result = null;
 
-    //JPanel upIPanel = new JPanel();
-    //JPanel midIPanel = new JPanel();
-    //JPanel downIPanel = new JPanel();
-//
-    //JLabel brandL = new JLabel("Марка:");
-    //JLabel nameL = new JLabel("Име:");
-    //JTextField brandTF = new JTextField();
-    //JTextField nameTF = new JTextField();
-//
-    //JButton searchBTN = new JButton("Търсене");
-    //JButton cleanTableBTN =new JButton("Изчисти таблица");
+    JPanel upIPanel = new JPanel();
+    JPanel midIPanel = new JPanel();
+    JPanel downIPanel = new JPanel();
+
+    JLabel brandL = new JLabel("Марка:");
+    JLabel firstnameL = new JLabel("Име:");
+    JLabel familyNameL = new JLabel("Фамилия:");
+    JTextField brandTFITab = new JTextField();
+    JTextField firstnameTF = new JTextField();
+    JTextField familyNameTF = new JTextField();
+
+    JButton searchBTN = new JButton("Търсене");
+    JButton sumTableBTN = new JButton("Обобщи данни");
 
     JTable table = new JTable();
     JScrollPane inquiry_scrollPane = new JScrollPane(table);
@@ -29,22 +31,29 @@ public class InquiryTab extends JPanel{
     public InquiryTab(){
         this.setLayout(new GridLayout(3, 1));
 
-        //upIPanel.setLayout(new GridLayout(4,2));
-        //upIPanel.add(brandL);
-        //upIPanel.add(brandTF);
-        //upIPanel.add(nameL);
-        //upIPanel.add(nameTF);
-        //this.add(upIPanel);
+        upIPanel.setLayout(new GridLayout(3,2));
+        upIPanel.add(firstnameL);
+        upIPanel.add(firstnameTF);
+        upIPanel.add(familyNameL);
+        upIPanel.add(familyNameTF);
+        upIPanel.add(brandL);
+        upIPanel.add(brandTFITab);
+        this.add(upIPanel);
 
-        //midIPanel.add(searchBTN);
-        //this.add(midIPanel);
+        midIPanel.setLayout(new GridLayout(1,1));
+        downIPanel.add(searchBTN);
+        downIPanel.add(sumTableBTN);
+        this.add(downIPanel);
 
-        //inquiry_scrollPane.setPreferredSize(new Dimension(300, 150));
-        //downIPanel.add(inquiry_scrollPane);
-        //this.add(downIPanel);
+        searchBTN.addActionListener(new SearchActionBrandAndPeople());
+        sumTableBTN.addActionListener(new RefreshActionInquiryTable());
 
         inquiry_scrollPane.setPreferredSize(new Dimension(300, 150));
-        this.add(inquiry_scrollPane);
+        midIPanel.setLayout(new GridLayout(1,1));
+        midIPanel.add(inquiry_scrollPane);
+        this.add(midIPanel);
+
+
 
         refreshInquiryTable();
         this.setVisible(true);
@@ -53,17 +62,9 @@ public class InquiryTab extends JPanel{
 
         public void refreshInquiryTable() {
             try {
-                String sql = "SELECT " +
-                        "r.REPORT_ID, " +
-                        "r.PERSON_ID, " +
-                        "o.FIRST_NAME || ' ' || o.SECOND_NAME, " +
-                        "r.CAR_ID, " +
-                        "c.BRAND, " +
-                        "r.REPORT_DATE " +
-                        "FROM reports r " +
-                        "JOIN owners o ON r.PERSON_ID = o.PERSON_ID " +
-                        "JOIN cars c ON r.CAR_ID = c.CAR_ID " +
-                        "ORDER BY r.REPORT_DATE DESC";
+                String sql = "SELECT concat(owners.FIRST_NAME, ' ', owners.SECOND_NAME) as Собственик, concat(cars.BRAND, ' ', cars.model) as Кола\n" +
+                        "FROM owners\n" +
+                        "CROSS JOIN cars";
                 if (table.getRowCount() == 0) {
                     System.out.println("Няма намерени данни в таблица reports!");
                 } else {
@@ -78,6 +79,46 @@ public class InquiryTab extends JPanel{
                 e.printStackTrace();
             }
         }
+
+    public void clearForm() {
+        firstnameTF.setText("");
+        familyNameTF.setText("");
+        brandTFITab.setText("");
+    }
+
+
+    class SearchActionBrandAndPeople implements ActionListener {
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            String sql = "SELECT concat(owners.FIRST_NAME, ' ', owners.SECOND_NAME) as Собственик, concat(cars.BRAND, ' ', cars.model) as Кола\n from owners\n cross join cars where brand=? or first_name=? and second_name=? ";
+
+            try {
+                state = conn.prepareStatement(sql);
+
+                state.setString(1, brandTFITab.getText());
+                state.setString(2, firstnameTF.getText());
+                state.setString(3, familyNameTF.getText());
+                result = state.executeQuery();
+                table.setModel(new MyModel(result));
+
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            }
+        }
+    }
+
+    class RefreshActionInquiryTable implements ActionListener{
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+
+            refreshInquiryTable();
+            clearForm();
+
+        }
+
+    }
     }
 
 
