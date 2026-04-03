@@ -5,6 +5,7 @@ import java.awt.event.ActionListener;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class InquiryTab extends JPanel{
     Connection conn = DBConnection.getConnection();
@@ -23,7 +24,7 @@ public class InquiryTab extends JPanel{
     JTextField familyNameTF = new JTextField();
 
     JButton searchBTN = new JButton("Търсене");
-    JButton sumTableBTN = new JButton("Обобщи данни");
+    JButton sumTableBTN = new JButton("Обнови");
 
     JTable table = new JTable();
     JScrollPane inquiry_scrollPane = new JScrollPane(table);
@@ -53,18 +54,36 @@ public class InquiryTab extends JPanel{
         midIPanel.add(inquiry_scrollPane);
         this.add(midIPanel);
 
-
-
         refreshInquiryTable();
         this.setVisible(true);
     }
 
+//    public void linkOwnersWithCars() {
+//
+//
+//
+//        try {
+//            String insertSql = "SELECT \n" +
+//                    "    person_name AS собственик,\n" +
+//                    "    car_brand_model AS кола\n" +
+//                    "FROM reports r\n" +
+//                    "JOIN owners o ON r.person_id = o.person_id\n" +
+//                    "JOIN cars c ON r.car_id = c.car_id;";
+//            state = conn.prepareStatement(insertSql);
+//            state.execute();
+//        } catch (SQLException e) {
+//            throw new RuntimeException(e);
+//        }
+//
+//    }
 
-        public void refreshInquiryTable() {
+    public void refreshInquiryTable() {
             try {
-                String sql = "SELECT concat(owners.FIRST_NAME, ' ', owners.SECOND_NAME) as Собственик, concat(cars.BRAND, ' ', cars.model) as Кола\n" +
-                        "FROM owners\n" +
-                        "CROSS JOIN cars";
+                String sql = "SELECT \n" +
+                        "    person_name AS собственик,\n" +
+                        "    car_brand_model AS кола\n" +
+                        "FROM reports";
+
                 if (table.getRowCount() == 0) {
                     System.out.println("Няма намерени данни в таблица reports!");
                 } else {
@@ -91,17 +110,19 @@ public class InquiryTab extends JPanel{
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            String sql = "SELECT concat(owners.FIRST_NAME, ' ', owners.SECOND_NAME) as Собственик, concat(cars.BRAND, ' ', cars.model) as Кола\n from owners\n cross join cars where brand=? or first_name=? and second_name=? ";
+            String sql = "SELECT person_name, car_brand_model from reports where person_name=? or car_brand_model=?";
 
             try {
                 state = conn.prepareStatement(sql);
 
-                state.setString(1, brandTFITab.getText());
-                state.setString(2, firstnameTF.getText());
-                state.setString(3, familyNameTF.getText());
+                state.setString(1, firstnameTF.getText() + familyNameTF.getText());
+                state.setString(2, brandTFITab.getText());
+
                 result = state.executeQuery();
                 table.setModel(new MyModel(result));
 
+                refreshInquiryTable();
+                clearForm();
             } catch (Exception ex) {
                 throw new RuntimeException(ex);
             }

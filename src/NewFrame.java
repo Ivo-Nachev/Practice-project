@@ -14,8 +14,9 @@ public class NewFrame extends JFrame {
     Connection conn = DBConnection.getConnection();
     PreparedStatement state = null;
     ResultSet result = null;
-    int person_id = -1;
-
+    int person_id_forEditAndDelete = -1;
+    static int person_id_forAdd = -1;
+    boolean actionCheck = true;
 
     JTabbedPane tab=new JTabbedPane();
 
@@ -28,6 +29,10 @@ public class NewFrame extends JFrame {
     JLabel familyNameL = new JLabel("Фамилия:");
     JTextField firstNameTF = new JTextField();
     JTextField familyNameTF = new JTextField();
+
+    static String personFirstName;
+    static String personFamilyName;
+
 
     JComboBox<String> ownerCombo = new JComboBox<>();
 
@@ -45,7 +50,6 @@ public class NewFrame extends JFrame {
     public NewFrame() {
         this.setSize(700, 400);
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
-
         personPanel.setLayout(new GridLayout(3, 1));
 
         person_upPanel.setLayout(new GridLayout(2,2));
@@ -120,7 +124,7 @@ public class NewFrame extends JFrame {
     public void clearForm() {
         firstNameTF.setText("");
         familyNameTF.setText("");
-        person_id = -1;
+        person_id_forEditAndDelete = -1;
     }
 
     public int getPersonId (String first_name, String family_name) {
@@ -134,8 +138,15 @@ public class NewFrame extends JFrame {
 
             result = state.executeQuery();
             if (result.next()) {
-                person_id = result.getInt("person_id");
-                System.out.println("Намерено ID: " + person_id);
+
+                if (!actionCheck) {
+                    person_id_forAdd = result.getInt("person_id");
+                    System.out.println("Намерено ID: " + person_id_forAdd);
+                } else {
+                    person_id_forEditAndDelete = result.getInt("person_id");
+                    System.out.println("Намерено ID: " + person_id_forEditAndDelete);
+                }
+
             } else {
                 System.out.println("Няма кола с тези параметри");
             }
@@ -145,25 +156,29 @@ public class NewFrame extends JFrame {
             throw new RuntimeException(ex);
         }
 
-        return person_id;
+        return person_id_forEditAndDelete;
     }
 
     class AddActionPerson implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
+            actionCheck = false;
 
-            String sql = "insert into owners (first_name, second_name) values(?,?)";
-
+            String sql = "insert into owners (first_name, second_name) values(?,?)\n";
             try{
+
+                personFirstName = firstNameTF.getText();
+                personFamilyName = familyNameTF.getText();
+
                 state = conn.prepareStatement(sql);
-                state.setString(1, firstNameTF.getText());
-                state.setString(2, familyNameTF.getText());
+                state.setString(1, personFirstName);
+                state.setString(2, personFamilyName);
 
                 state.execute();
             } catch (SQLException | NullPointerException ex) {
                 ex.printStackTrace();
             }
-
+            getPersonId(firstNameTF.getText(), familyNameTF.getText());
             refreshPersonTable();
             clearForm();
             refreshOwnerCombo();
@@ -174,11 +189,12 @@ public class NewFrame extends JFrame {
 
         @Override
         public void actionPerformed(ActionEvent e) {
+            actionCheck = true;
             String sql = "delete from owners where person_id=?";
 
             try {
                 state=conn.prepareStatement(sql);
-                state.setInt(1, person_id);
+                state.setInt(1, person_id_forEditAndDelete);
                 state.execute();
 
                 refreshPersonTable();
@@ -196,13 +212,13 @@ public class NewFrame extends JFrame {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-
+            actionCheck = true;
             try {
                 String sql = "update owners set first_name=?, second_name=? where person_id=?";
                 state = conn.prepareStatement(sql);
                 state.setString(1, firstNameTF.getText());
                 state.setString(2, familyNameTF.getText());
-                state.setInt(3, person_id);
+                state.setInt(3, person_id_forEditAndDelete);
 
                 state.execute();
 
@@ -228,7 +244,7 @@ public class NewFrame extends JFrame {
             String first_name = firstNameTF.getText();
             String second_name = familyNameTF.getText();
 
-            person_id = getPersonId(first_name, second_name);
+            person_id_forEditAndDelete = getPersonId(first_name, second_name);
 
         }
 

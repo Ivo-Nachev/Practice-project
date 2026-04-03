@@ -10,7 +10,8 @@ public class CarsTab extends JPanel {
     Connection conn = DBConnection.getConnection();
     PreparedStatement state = null;
     ResultSet result = null;
-    int id = -1;
+    int car_id = -1;
+    int owner_car_id = -1;
 
     JPanel upPanel = new JPanel();
     JPanel midPanel = new JPanel();
@@ -49,9 +50,6 @@ public class CarsTab extends JPanel {
 
     JTable table = new JTable();
     JScrollPane scrollPane = new JScrollPane(table);
-
-
-
 
     public CarsTab () {
         this.setSize(700, 500);
@@ -94,7 +92,7 @@ public class CarsTab extends JPanel {
         searchByYear.addActionListener(new SearchActionCar());
         carRefresh.addActionListener(new RefreshActionCar());
 
-        scrollPane.setPreferredSize(new Dimension(1100, 500));
+        scrollPane.setPreferredSize(new Dimension(600, 300));
         downPanel.add(scrollPane);
         this.add(downPanel);
 
@@ -149,7 +147,7 @@ public class CarsTab extends JPanel {
         maxSpeedTF.setText("");
         zeroToHundredSecondsTF.setText("");
         ecoCategoryTF.setText("");
-        id = -1;
+        car_id = -1;
     }
 
     public int getCarId (String brand, String model, String country, int year,
@@ -175,8 +173,8 @@ public class CarsTab extends JPanel {
 
             result = state.executeQuery();
             if (result.next()) {
-                id = result.getInt("car_id");
-                System.out.println("Намерено ID: " + id);
+                car_id = result.getInt("car_id");
+                System.out.println("Намерено ID: " + car_id);
             } else {
                 System.out.println("Няма кола с тези параметри");
             }
@@ -186,16 +184,15 @@ public class CarsTab extends JPanel {
             throw new RuntimeException(ex);
         }
 
-        return id;
+        return car_id;
     }
 
     class AddAction implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
 
-            String sql = "insert into cars (brand,model,country,year_production,horse_power,max_speed,zero_to_hundred_seconds,transmission,eco_category) values(?,?,?,?,?,?,?,?,?)";
-
             try{
+                String sql = "insert into cars (brand,model,country,year_production,horse_power,max_speed,zero_to_hundred_seconds,transmission,eco_category) values(?,?,?,?,?,?,?,?,?)";
                 state = conn.prepareStatement(sql);
                 state.setString(1, brandTF.getText());
                 state.setString(2, modelTF.getText());
@@ -206,7 +203,26 @@ public class CarsTab extends JPanel {
                 state.setFloat(7, Float.parseFloat(zeroToHundredSecondsTF.getText()));
                 state.setString(8, transmissionCombo.getSelectedItem().toString());
                 state.setString(9, ecoCategoryTF.getText());
+                state.execute();
+            } catch (SQLException | NullPointerException ex) {
+                ex.printStackTrace();
+            }
+            owner_car_id = getCarId(brandTF.getText(), modelTF.getText(), countryTF.getText(),
+                    Integer.parseInt(yearTF.getText()), Integer.parseInt(horsePowerTF.getText()),
+                    Float.parseFloat(maxSpeedTF.getText()), Float.parseFloat(zeroToHundredSecondsTF.getText()),
+                    transmissionCombo.getSelectedItem().toString(), ecoCategoryTF.getText());
 
+            try{
+                String sqlInsertIntoReports = "insert into reports (person_name, car_brand_model, car_id, person_id) values(?,?,?,?)";
+
+                String personName = NewFrame.personFirstName + " " + NewFrame.personFamilyName;
+                String carName = brandTF.getText() + " " + modelTF.getText();
+
+                state = conn.prepareStatement(sqlInsertIntoReports);
+                state.setString(1, personName);
+                state.setString(2, carName);
+                state.setInt(3, owner_car_id);
+                state.setInt(4, NewFrame.person_id_forAdd);
                 state.execute();
             } catch (SQLException | NullPointerException ex) {
                 ex.printStackTrace();
@@ -226,7 +242,7 @@ public class CarsTab extends JPanel {
 
             try {
                state=conn.prepareStatement(sql);
-               state.setInt(1, id);
+               state.setInt(1, car_id);
                state.execute();
 
                refreshTable();
@@ -248,7 +264,7 @@ public class CarsTab extends JPanel {
             try {
                 String sql = "update cars set brand=?, model=?, country=?, YEAR_PRODUCTION=?, HORSE_POWER=?, MAX_SPEED=?, ZERO_TO_HUNDRED_SECONDS=?, TRANSMISSION=?, ECO_CATEGORY=? where car_id=?";
                 state = conn.prepareStatement(sql);
-                state.setInt(10, id);
+                state.setInt(10, car_id);
                 state.setString(1, brandTF.getText());
                 state.setString(2, modelTF.getText());
                 state.setString(3, countryTF.getText());
@@ -261,14 +277,21 @@ public class CarsTab extends JPanel {
 
                 state.execute();
 
-                refreshTable();
-                clearForm();
-                refreshCarCombo();
-
-
             } catch (SQLException ex) {
                 throw new RuntimeException(ex);
             }
+
+            try {
+                String updateReportsSQL = "update reports set person_name =?, car_brand_model=?";
+                state = conn.prepareStatement(updateReportsSQL);
+                state.execute();
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
+            }
+
+            refreshTable();
+            clearForm();
+            refreshCarCombo();
         }
     }
 
@@ -302,7 +325,7 @@ public class CarsTab extends JPanel {
             String transmission = (String) transmissionCombo.getSelectedItem();
             String ecoCategory = ecoCategoryTF.getText();
 
-            id = getCarId(brand, model, country, year, horsePower,
+            car_id = getCarId(brand, model, country, year, horsePower,
                     maxSpeed, zeroToHundred, transmission, ecoCategory);
 
         }
