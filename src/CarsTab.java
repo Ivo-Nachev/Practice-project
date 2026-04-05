@@ -281,13 +281,16 @@ public class CarsTab extends JPanel {
                 throw new RuntimeException(ex);
             }
 
-            try {
-                String updateReportsSQL = "update reports set person_name =?, car_brand_model=?";
-                state = conn.prepareStatement(updateReportsSQL);
-                state.execute();
-            } catch (SQLException ex) {
-                throw new RuntimeException(ex);
-            }
+//            try {
+//                String updateReportsSQL = "update reports set person_name =?, car_brand_model=? where person_id=? and car_id = ?";
+//                state = conn.prepareStatement(updateReportsSQL);
+//                state.setString(1, NewFrame.personFirstName + NewFrame.personFamilyName);
+//                state.setString(2, brandTF.getText() + modelTF.getText());
+//
+//                state.execute();
+//            } catch (SQLException ex) {
+//                throw new RuntimeException(ex);
+//            }
 
             refreshTable();
             clearForm();

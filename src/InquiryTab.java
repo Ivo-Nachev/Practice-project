@@ -5,7 +5,6 @@ import java.awt.event.ActionListener;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 
 public class InquiryTab extends JPanel{
     Connection conn = DBConnection.getConnection();
@@ -79,16 +78,11 @@ public class InquiryTab extends JPanel{
 
     public void refreshInquiryTable() {
             try {
-                String sql = "SELECT \n" +
-                        "    person_name AS собственик,\n" +
-                        "    car_brand_model AS кола\n" +
-                        "FROM reports";
-
-                if (table.getRowCount() == 0) {
-                    System.out.println("Няма намерени данни в таблица reports!");
-                } else {
-                    System.out.println("Заредени " + table.getRowCount() + " записа");
-                }
+                String sql = """
+                        SELECT\s
+                            person_name AS собственик,
+                            car_brand_model AS кола
+                        FROM reports""";
 
                 state = conn.prepareStatement(sql);
                 result = state.executeQuery();
@@ -121,8 +115,6 @@ public class InquiryTab extends JPanel{
                 result = state.executeQuery();
                 table.setModel(new MyModel(result));
 
-                refreshInquiryTable();
-                clearForm();
             } catch (Exception ex) {
                 throw new RuntimeException(ex);
             }
